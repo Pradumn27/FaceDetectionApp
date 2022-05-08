@@ -8,11 +8,15 @@ import * as FaceDetector from 'expo-face-detector';
 import { useIsFocused } from '@react-navigation/core'
 import { Feather } from '@expo/vector-icons'
 
+import { shareAsync } from 'expo-sharing';
+import * as MediaLibrary from 'expo-media-library';
+
 import styles from './styles'
 
 export default function CameraScreen() {
     const [hasCameraPermissions, setHasCameraPermissions] = useState(false)
     const [hasAudioPermissions, setHasAudioPermissions] = useState(false)
+    const [hasMediaLibraryPermission, setHasMediaLibraryPermission] = useState();
 
     const [photo, setPhoto] = useState();
     const [video, setVideo] = useState();
@@ -29,7 +33,8 @@ export default function CameraScreen() {
         (async () => {
             const cameraStatus = await Camera.requestCameraPermissionsAsync()
             setHasCameraPermissions(cameraStatus.status == 'granted')
-
+            const mediaLibraryPermission = await MediaLibrary.requestPermissionsAsync();
+            setHasMediaLibraryPermission(mediaLibraryPermission.status === "granted");
             const audioStatus = await Audio.requestPermissionsAsync()
             setHasAudioPermissions(audioStatus.status == 'granted')
         })()
@@ -42,7 +47,7 @@ export default function CameraScreen() {
                 const videoRecordPromise = cameraRef.recordAsync(options)
                 if (videoRecordPromise) {
                     const data = await videoRecordPromise;
-                    const source = data.uri
+                    setVideo(data);
                 }
             } catch (error) {
                 console.warn(error)
@@ -62,7 +67,7 @@ export default function CameraScreen() {
             exif: false
         };
 
-        let newPhoto = await cameraRef.current.takePictureAsync(options);
+        let newPhoto = await cameraRef.takePictureAsync(options);
         setPhoto(newPhoto);
     }
 
@@ -85,6 +90,29 @@ export default function CameraScreen() {
                 <Button title="Share" onPress={sharePic} />
                 {hasMediaLibraryPermission ? <Button title="Save" onPress={savePhoto} /> : undefined}
                 <Button title="Discard" onPress={() => setPhoto(undefined)} />
+            </SafeAreaView>
+        );
+    }
+
+    if (video) {
+        let shareVideo = () => {
+            shareAsync(video.uri).then(() => {
+                setVideo(undefined);
+            });
+        };
+
+        let saveVideo = () => {
+            MediaLibrary.saveToLibraryAsync(video.uri).then(() => {
+                setVideo(undefined);
+            });
+        };
+
+        return (
+            <SafeAreaView style={styles.container}>
+                <Image style={styles.preview} source={{ uri: "data:image/jpg;base64," + video.base64 }} />
+                <Button title="Share" onPress={shareVideo} />
+                {hasMediaLibraryPermission ? <Button title="Save" onPress={saveVideo} /> : undefined}
+                <Button title="Discard" onPress={() => setVideo(undefined)} />
             </SafeAreaView>
         );
     }
