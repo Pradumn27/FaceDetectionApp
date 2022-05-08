@@ -27,7 +27,7 @@ export default function CameraScreen() {
 
     useEffect(() => {
         (async () => {
-            const cameraStatus = await Camera.requestPermissionsAsync()
+            const cameraStatus = await Camera.requestCameraPermissionsAsync()
             setHasCameraPermissions(cameraStatus.status == 'granted')
 
             const audioStatus = await Audio.requestPermissionsAsync()
